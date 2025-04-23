@@ -1,0 +1,14 @@
+#!/bin/bash
+# Run ktlint check before pushing
+./gradlew ktlintCheck
+
+# Capture the exit code of the ktlintCheck command
+RESULT=$?
+
+if [ $RESULT -ne 0 ]; then
+  echo "ktlint check failed. Fix the issues before committing."
+  exit 1
+fi
+
+# Allow commit if ktlintCheck passed
+exit 0

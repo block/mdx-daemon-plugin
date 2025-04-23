@@ -1,0 +1,166 @@
+
+plugins {
+    id 'org.jetbrains.kotlin.jvm' version("2.1.0")
+    id 'org.jetbrains.intellij.platform' version("2.2.1")
+    id 'org.jlleitschuh.gradle.ktlint' version ("12.1.1")
+    id 'maven-publish'
+}
+
+import org.jetbrains.kotlin.gradle.dsl.KotlinCompile
+import org.jetbrains.intellij.platform.gradle.TestFrameworkType
+import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
+import org.jetbrains.intellij.platform.gradle.Constants
+
+configurations.configureEach {
+    if (it.name == Constants.Configurations.INTELLIJ_PLATFORM_BUNDLED_MODULES) {
+        exclude group: Constants.Configurations.Dependencies.BUNDLED_MODULE_GROUP, module: "com.jetbrains.performancePlugin"
+    }
+}
+
+def androidStudioDirectory = findProperty("square.developerToolkit.studioDir") ?:
+        "/Applications/Android Studio.app/Contents"
+
+// We need to declare repositories here (again) because the intellij plugin declares its own
+// repositories, which makes the project ignore repositories declared in settings.gradle.
+repositories {
+    mavenCentral()
+    intellijPlatform {
+        defaultRepositories()
+    }
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+kotlin {
+    jvmToolchain(21)
+}
+
+// Minimum version of studio should reflect the stable version installed by sa-toolbox
+def androidStudioMinVersion = "2024.2.1.10"
+// We compile and run against meerkat because it fixes issues with performanceTesting.jar
+def androidStudioTargetVersion = "2024.3.1.13" // Meerkat
+
+dependencies {
+    intellijPlatform {
+        // The IDE version you wish to compile/test against. The committed value should always be the current
+        // stable/release version targeted by sa-toolbox.
+        androidStudio(androidStudioTargetVersion)
+        bundledPlugin("com.intellij.gradle")
+        bundledPlugin("org.jetbrains.kotlin")
+        plugin("org.jetbrains.plugins.terminal:243.16718.27")
+        // This should be the intellij platform version of the minimum android studio version supported
+        // https://plugins.jetbrains.com/docs/intellij/android-studio-releases-list.html
+        plugin("org.jetbrains.android:242.23339.11")
+
+        pluginVerifier()
+        instrumentationTools()
+        testFramework TestFrameworkType.Platform.INSTANCE
+    }
+
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.10.0")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.10.0")
+
+    testImplementation("org.mockito.kotlin:mockito-kotlin:5.2.1")
+}
+
+test {
+    useJUnitPlatform()
+}
+
+// Plugin configuration variables. For new releases, update the version here.
+version = '0.0.1' // *** UPDATE THE CHANGELOG IF YOU ARE RELEASING A NEW VERSION! ***
+group = 'com.squareup.mdxdaemon.plugin'
+def pluginProjectName = "mdxdaemon-ide-plugin"
+
+afterEvaluate {
+    tasks.withType(Jar).configureEach {
+        archiveBaseName.set(pluginProjectName)
+    }
+}
+
+// IDE (Android Studio) configuration variables. Used for compatibility. Follow AI versioning, as
+// wildcard versioning only works for IntelliJ base versions.
+// See: https://plugins.jetbrains.com/docs/intellij/android-studio-releases-list.html#2022
+// Since Build: Ladybug Patch01
+// Until Build: Unlimited
+def sinceBuildNumber = '243.22562.218'
+// We use 'xxx.9999999.9999999' for our 'until' version so that we do not need to update this value for each
+// minor IDE release, particularly for canary versions.
+def untilBuildNumber = '998.9999999.9999999'
+// gradle-intellij-plugin configuration (https://github.com/JetBrains/gradle-intellij-plugin).
+intellijPlatform {
+
+    publishing {
+        setToken(providers.gradleProperty("intellijPlatformPublishingToken"))
+    }
+
+    pluginConfiguration {
+        buildSearchableOptions = true
+        projectName = pluginProjectName
+
+        ideaVersion {
+            sinceBuild = sinceBuildNumber
+            untilBuild = untilBuildNumber
+        }
+    }
+    // This allows us to perform iterative modifications to the plugin and hot-load the changes rather
+    // than spawning a new IDE instance every time a change is made.
+    autoReload = true
+
+    pluginVerification {
+        ides {
+            // Test on multiple IDE versions to catch upcoming plugin issues.
+            // Ideally this would track both sa-toolbox stable and beta channel versions
+            // TODO: make this read the ide-catalog.json files in the future
+            ide IntelliJPlatformType.AndroidStudio, androidStudioMinVersion
+            ide IntelliJPlatformType.AndroidStudio, androidStudioTargetVersion
+        }
+        freeArgs = ["-mute", "TemplateWordInPluginName"]
+        ignoredProblemsFile = file("src/main/resources/ignoredVerificationProblems.txt")
+    }
+}
+
+// Workaround for the "can't find performanceTesting.jar" issue when building against AS Ladybug
+// https://github.com/JetBrains/intellij-platform-gradle-plugin/issues/1738
+// Solution from https://github.com/JetBrains/intellij-platform-gradle-plugin/issues/1738#issuecomment-2486453928
+configurations.configureEach {
+    if (it.name == Constants.Configurations.INTELLIJ_PLATFORM_BUNDLED_MODULES) {
+        exclude group: Constants.Configurations.Dependencies.BUNDLED_MODULE_GROUP, module: "com.jetbrains.performancePlugin"
+    }
+}
+
+tasks.withType(KotlinCompile).configureEach {
+    kotlinOptions {
+        suppressWarnings = true
+        // Necessary for the dynamic plugin listener. Dropping the public options as they are 1.4 specific.
+        // Get rid of warning from Kotlin v1.7.20 of '-Xjvm-default=enable' is deprecated, please use '-Xjvm-default=all|all-compatibility'
+        // See https://blog.jetbrains.com/kotlin/2020/07/kotlin-1-4-m3-generating-default-methods-in-interfaces/
+        freeCompilerArgs = ["-Xjvm-default=all", "-opt-in=kotlin.RequiresOptIn"]
+    }
+}
+
+tasks.named('runIde') {
+    // Editing the run configuration to include this as a vmoption doesn't work, so in order to test
+    // this plugin at scale, we need to bump the -Xmx size.
+    maxHeapSize = "14g"
+
+    // Needed for preventing "Too many open files" due to the IDE not having the flag
+    jvmArgs = [
+            '-XX:-MaxFDLimit',
+            '-Didea.kotlin.plugin.use.k2=true',
+    ]
+
+    // Requires an absolute path to the IDE script in order to spawn a new IDE instance. When using
+    // sa-toolbox, IDEs are stored in: ~/Applications/MDX/Android Studio.app/Contents.
+    if (new File(androidStudioDirectory).exists()) {
+        ideDir = new File(androidStudioDirectory)
+    }
+}
+
+tasks.register('setupGitHooks', Exec) {
+    commandLine 'bash', './scripts/hooks/setup_hooks.sh'
+}
