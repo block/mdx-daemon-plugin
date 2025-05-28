@@ -46,6 +46,16 @@ class JobIdLocatorTest {
     }
 
     @Test
+    fun `returns trimmed jobId from project gradle properties if present`() {
+        gradleProperties.writeText("mdxdaemon.jobId=cash-android ")
+
+        val project = mockProject(tempProjectDir.path)
+        val result = jobIdLocator.locateJobId(project)
+
+        assertEquals("cash-android", result)
+    }
+
+    @Test
     fun `returns jobId from global gradle properties if project file is missing`() {
         val globalPropsFile = File(System.getProperty("user.home"), ".gradle/gradle.properties")
         val backup = if (globalPropsFile.exists()) globalPropsFile.readText() else null

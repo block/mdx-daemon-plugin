@@ -20,6 +20,6 @@ class JobIdLocator {
             userPropertiesFile.inputStream().use { properties.load(it) }
         }
 
-        return properties.getProperty("mdxdaemon.jobId")
+        return properties.getProperty("mdxdaemon.jobId")?.trim()
     }
 }
