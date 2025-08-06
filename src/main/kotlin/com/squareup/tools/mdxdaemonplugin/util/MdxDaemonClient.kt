@@ -37,6 +37,6 @@ class MdxDaemonClient(
     }
 
     companion object {
-        const val DEFAULT_PORT = 9090
+        const val DEFAULT_PORT = 2964
     }
 }
