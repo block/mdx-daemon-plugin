@@ -4,7 +4,7 @@ name: Publish Plugin
 on:
   push:
     tags:
-        - 'v*.*.*'
+      - 'v*.*.*'   # e.g., v0.0.2
   workflow_dispatch:
 
 permissions:
@@ -13,25 +13,34 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
-    if: github.repository == 'block/mdx-daemon-plugin'
+    if: startsWith(github.ref, 'refs/tags/') && github.repository == 'block/mdx-daemon-plugin'
     steps:
       - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 #v4
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Extract version
+      - name: Setup Java (17)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: 17
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Extract version from Gradle
         id: version
         run: |
-          if grep -q '^version=' gradle.properties; then
-            V=$(grep '^version=' gradle.properties | cut -d= -f2)
-          else
-            V=$(grep -oPm1 "(?<=<version>)[^<]+" src/main/resources/META-INF/plugin.xml)
-          fi
-          echo "version=$V" >> $GITHUB_OUTPUT
+          V=$(./gradlew -q properties | awk -F': ' '/^version:/ {print $2; exit}')
+          echo "version=$V" >> "$GITHUB_OUTPUT"
 
-      - name: Validate tag
+      - name: Validate tag matches version (strip leading 'v')
         run: |
-          if [[ "${{ github.ref_name }}" != "${{ steps.version.outputs.version }}" ]]; then
-            echo "Tag does not match version ${{ steps.version.outputs.version }}"; exit 1
+          TAG="${{ github.ref_name }}"         # e.g., v0.0.2
+          [[ "$TAG" == v* ]] && TAG="${TAG:1}" # -> 0.0.2
+          if [[ "$TAG" != "${{ steps.version.outputs.version }}" ]]; then
+            echo "Tag '$TAG' does not match version '${{ steps.version.outputs.version }}'"; exit 1
           fi
 
       - name: Build Plugin ZIP
@@ -40,21 +49,23 @@ jobs:
       - name: Create GitHub Release
         id: create_release
         uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ steps.version.outputs.version }}
+          tag_name: ${{ github.ref_name }}            # use the pushed tag (e.g., v0.0.2)
           release_name: ${{ steps.version.outputs.version }}
           draft: false
           prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload Plugin ZIP
         uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: build/distributions/mdxdaemon-ide-plugin-${{ steps.version.outputs.version }}.zip
-          asset_name: mxddaemon-ide-plugin-${{ steps.version.outputs.version }}.zip
-          asset_content_type: 'application/zip'
+          asset_name: mdxdaemon-ide-plugin-${{ steps.version.outputs.version }}.zip
+          asset_content_type: application/zip
 
       - name: Publish to JetBrains Marketplace
         run: ./gradlew publishPlugin -s
