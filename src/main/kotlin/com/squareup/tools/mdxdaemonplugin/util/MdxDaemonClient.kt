@@ -7,7 +7,7 @@ import java.net.URL
 /**
  * A client for communicating with the MDX Daemon server.
  *
- * @param port The port on which the MDX Daemon server is running. Default is 9090.
+ * @param port The port on which the MDX Daemon server is running. Default is 2964.
  * @param host The host on which the MDX Daemon server is running. Default is "localhost".
  */
 class MdxDaemonClient(
