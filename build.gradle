@@ -164,3 +164,13 @@ tasks.named('runIde') {
 tasks.register('setupGitHooks', Exec) {
     commandLine 'bash', './scripts/hooks/setup_hooks.sh'
 }
+
+tasks {
+    patchPluginXml {
+        version = System.getenv("IJ_PLUGIN_VERSION") // IJ_PLUGIN_VERSION env var available in CI
+    }
+
+    publishPlugin {
+        token = System.getenv("JETBRAINS_TOKEN") // JETBRAINS_TOKEN env var available in CI
+    }
+}
