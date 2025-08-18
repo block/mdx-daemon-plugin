@@ -1,45 +1,32 @@
 package com.squareup.tools.mdxdaemonplugin
 
-import com.android.tools.idea.gradle.project.build.BuildContext
-import com.android.tools.idea.gradle.project.build.BuildStatus
-import com.android.tools.idea.gradle.project.build.GradleBuildListener
-import com.android.tools.idea.gradle.project.sync.GradleSyncListenerWithRoot
-import com.intellij.openapi.project.Project
+import com.intellij.openapi.externalSystem.model.task.ExternalSystemTaskId
+import com.intellij.openapi.externalSystem.model.task.ExternalSystemTaskNotificationListener
+import com.intellij.openapi.externalSystem.model.task.ExternalSystemTaskType
 import com.squareup.tools.mdxdaemonplugin.model.Source
+import org.jetbrains.plugins.gradle.util.GradleConstants
 
 /**
  * MdxExternalSystemListener is a listener for Gradle build and sync events.
  * It cancels the background build when a Gradle build starts or when a sync starts, and starts the background build
  * when a Gradle sync completes successfully.
  */
-class MdxExternalSystemListener : GradleBuildListener, GradleSyncListenerWithRoot {
+class MdxExternalSystemListener : ExternalSystemTaskNotificationListener {
     private val configurationCacheUseCase: MdxDaemon = MdxDaemon.configurationCacheUseCase()
 
-    override fun syncStarted(
-        project: Project,
-        rootProjectPath: String,
-    ) {
-        println("MdxDaemon: Gradle SYNC started for project $rootProjectPath")
+    override fun onStart(projectPath: String, id: ExternalSystemTaskId) {
+        val project = id.findProject() ?: return
+        println("MdxDaemon: Gradle SYNC/BUILD started for project ${project.basePath}")
         configurationCacheUseCase.cancelBackgroundBuild(project, Source.OnSyncStart)
     }
 
-    override fun syncSucceeded(
-        project: Project,
-        rootProjectPath: String,
-    ) {
-        println("MdxDaemon: Gradle SYNC finished for project $rootProjectPath")
+    override fun onSuccess(projectPath: String, id: ExternalSystemTaskId) {
+        if (!id.isGradleResolveProjectTask) return
+        val project = id.findProject() ?: return
+        println("MdxDaemon: Gradle SYNC finished for project ${project.basePath}")
         configurationCacheUseCase.startBackgroundBuild(project, Source.OnSyncCompleteWithSuccess)
     }
-
-    override fun buildStarted(context: BuildContext) {
-        println("MdxDaemon: Gradle BUILD started")
-        configurationCacheUseCase.cancelBackgroundBuild(context.project, Source.OnIdeBuildStart)
-    }
-
-    override fun buildFinished(
-        status: BuildStatus,
-        context: BuildContext,
-    ) {
-        // No-op
-    }
 }
+
+internal val ExternalSystemTaskId.isGradleResolveProjectTask: Boolean
+    get() = projectSystemId == GradleConstants.SYSTEM_ID && type == ExternalSystemTaskType.RESOLVE_PROJECT
