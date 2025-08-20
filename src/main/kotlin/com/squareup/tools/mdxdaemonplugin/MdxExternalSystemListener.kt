@@ -16,8 +16,9 @@ class MdxExternalSystemListener : ExternalSystemTaskNotificationListener {
 
     override fun onStart(projectPath: String, id: ExternalSystemTaskId) {
         val project = id.findProject() ?: return
-        println("MdxDaemon: Gradle SYNC/BUILD started for project ${project.basePath}")
-        configurationCacheUseCase.cancelBackgroundBuild(project, Source.OnSyncStart)
+        val source = if (id.isGradleResolveProjectTask) Source.OnSyncStart else Source.OnIdeBuildStart
+        println("MdxDaemon: Gradle SYNC/BUILD started for project ${project.basePath} - source: $source")
+        configurationCacheUseCase.cancelBackgroundBuild(project, source)
     }
 
     override fun onSuccess(projectPath: String, id: ExternalSystemTaskId) {
