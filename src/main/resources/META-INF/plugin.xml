@@ -37,6 +37,11 @@ Initial public release:
         <externalSystemTaskNotificationListener implementation="com.squareup.tools.mdxdaemonplugin.MdxExternalSystemListener" />
     </extensions>
 
+    <projectListeners>
+        <listener class="com.squareup.tools.mdxdaemonplugin.MdxProjectDataImportListener"
+                  topic="com.intellij.openapi.externalSystem.service.project.manage.ProjectDataImportListener"/>
+    </projectListeners>
+
     <extensions defaultExtensionNs="org.jetbrains.kotlin">
         <supportsKotlinPluginMode supportsK2="true"/>
     </extensions>

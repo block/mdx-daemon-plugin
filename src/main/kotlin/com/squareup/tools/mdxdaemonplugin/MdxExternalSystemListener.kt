@@ -8,8 +8,7 @@ import org.jetbrains.plugins.gradle.util.GradleConstants
 
 /**
  * MdxExternalSystemListener is a listener for Gradle build and sync events.
- * It cancels the background build when a Gradle build starts or when a sync starts, and starts the background build
- * when a Gradle sync completes successfully.
+ * It cancels the background build when a Gradle build or a sync starts.
  */
 class MdxExternalSystemListener : ExternalSystemTaskNotificationListener {
     private val configurationCacheUseCase: MdxDaemon = MdxDaemon.configurationCacheUseCase()
@@ -19,13 +18,6 @@ class MdxExternalSystemListener : ExternalSystemTaskNotificationListener {
         val source = if (id.isGradleResolveProjectTask) Source.OnSyncStart else Source.OnIdeBuildStart
         println("MdxDaemon: Gradle SYNC/BUILD started for project ${project.basePath} - source: $source")
         configurationCacheUseCase.cancelBackgroundBuild(project, source)
-    }
-
-    override fun onSuccess(projectPath: String, id: ExternalSystemTaskId) {
-        if (!id.isGradleResolveProjectTask) return
-        val project = id.findProject() ?: return
-        println("MdxDaemon: Gradle SYNC finished for project ${project.basePath}")
-        configurationCacheUseCase.startBackgroundBuild(project, Source.OnSyncCompleteWithSuccess)
     }
 }
 

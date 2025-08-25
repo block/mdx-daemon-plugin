@@ -43,14 +43,12 @@ def androidStudioMinVersion = "2024.2.1.10"
 // We compile and run against meerkat because it fixes issues with performanceTesting.jar
 def androidStudioTargetVersion = "2024.3.1.13" // Meerkat
 
-def intellijTargetVersion = "2025.2"
+def intellijTargetVersion = "2025.1"
 
 dependencies {
     intellijPlatform {
         intellijIdeaUltimate(intellijTargetVersion)
         bundledPlugin("com.intellij.gradle")
-        bundledPlugin("org.jetbrains.kotlin")
-        plugin("org.jetbrains.plugins.terminal:243.16718.27")
 
         pluginVerifier()
         instrumentationTools()
@@ -116,7 +114,6 @@ intellijPlatform {
             ide IntelliJPlatformType.AndroidStudio, androidStudioMinVersion
             ide IntelliJPlatformType.AndroidStudio, androidStudioTargetVersion
             ide IntelliJPlatformType.IntellijIdeaUltimate, intellijTargetVersion
-            ide IntelliJPlatformType.IntellijIdeaCommunity, intellijTargetVersion
         }
         freeArgs = ["-mute", "TemplateWordInPluginName"]
     }
