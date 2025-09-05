@@ -1,7 +1,7 @@
 
 plugins {
     id 'org.jetbrains.kotlin.jvm' version("2.1.0")
-    id 'org.jetbrains.intellij.platform' version("2.2.1")
+    id 'org.jetbrains.intellij.platform' version("2.7.2")
     id 'org.jlleitschuh.gradle.ktlint' version ("12.1.1")
     id 'maven-publish'
 }
@@ -43,17 +43,12 @@ def androidStudioMinVersion = "2024.2.1.10"
 // We compile and run against meerkat because it fixes issues with performanceTesting.jar
 def androidStudioTargetVersion = "2024.3.1.13" // Meerkat
 
+def intellijTargetVersion = "2025.1"
+
 dependencies {
     intellijPlatform {
-        // The IDE version you wish to compile/test against. The committed value should always be the current
-        // stable/release version targeted by sa-toolbox.
-        androidStudio(androidStudioTargetVersion)
+        intellijIdeaUltimate(intellijTargetVersion)
         bundledPlugin("com.intellij.gradle")
-        bundledPlugin("org.jetbrains.kotlin")
-        plugin("org.jetbrains.plugins.terminal:243.16718.27")
-        // This should be the intellij platform version of the minimum android studio version supported
-        // https://plugins.jetbrains.com/docs/intellij/android-studio-releases-list.html
-        plugin("org.jetbrains.android:242.23339.11")
 
         pluginVerifier()
         instrumentationTools()
@@ -118,9 +113,9 @@ intellijPlatform {
             // TODO: make this read the ide-catalog.json files in the future
             ide IntelliJPlatformType.AndroidStudio, androidStudioMinVersion
             ide IntelliJPlatformType.AndroidStudio, androidStudioTargetVersion
+            ide IntelliJPlatformType.IntellijIdeaUltimate, intellijTargetVersion
         }
         freeArgs = ["-mute", "TemplateWordInPluginName"]
-        ignoredProblemsFile = file("src/main/resources/ignoredVerificationProblems.txt")
     }
 }
 

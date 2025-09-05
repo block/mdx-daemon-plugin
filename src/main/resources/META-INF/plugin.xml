@@ -7,7 +7,7 @@
     <version>0.0.2</version>
 
     <description><![CDATA[
-Boost your Android development productivity with background builds powered by the MDX Daemon. This plugin automatically runs background work as need to boost developer productivity.
+Boost your IDE development productivity with background builds powered by the MDX Daemon. This plugin automatically runs background work as need to boost developer productivity.
 
 Features:
 • Smart background build triggering
@@ -28,23 +28,19 @@ Initial public release:
     <!-- Platform compatibility -->
     <depends>com.intellij.gradle</depends>
     <depends>com.intellij.modules.platform</depends>
-    <depends>org.jetbrains.android</depends>
     <depends>org.jetbrains.kotlin</depends>
     <depends>org.jetbrains.plugins.terminal</depends>
     <depends>com.intellij.modules.java</depends>
-
-    <projectListeners>
-        <listener class="com.squareup.tools.mdxdaemonplugin.MdxExternalSystemListener"
-                  topic="com.android.tools.idea.gradle.project.sync.GradleSyncListenerWithRoot"/>
-        <listener class="com.squareup.tools.mdxdaemonplugin.MdxExternalSystemListener"
-                  topic="com.android.tools.idea.gradle.project.build.GradleBuildListener"/>
-    </projectListeners>
-
     <!-- Extension registrations -->
     <extensions defaultExtensionNs="com.intellij">
         <notificationGroup displayType="BALLOON" id="MdxDaemon Notifications" isLogByDefault="true"/>
-
+        <externalSystemTaskNotificationListener implementation="com.squareup.tools.mdxdaemonplugin.MdxExternalSystemListener" />
     </extensions>
+
+    <projectListeners>
+        <listener class="com.squareup.tools.mdxdaemonplugin.MdxProjectDataImportListener"
+                  topic="com.intellij.openapi.externalSystem.service.project.manage.ProjectDataImportListener"/>
+    </projectListeners>
 
     <extensions defaultExtensionNs="org.jetbrains.kotlin">
         <supportsKotlinPluginMode supportsK2="true"/>
