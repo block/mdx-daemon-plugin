@@ -1,5 +1,8 @@
 ## Unreleased
 
+## v0.1.0
+- Make the plugin work for IntelliJ IDEA
+
 ## v0.0.2
 - Updated port to 2964 for the daemon connection
 

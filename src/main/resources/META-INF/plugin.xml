@@ -4,7 +4,7 @@
 
     <name>Mdx Daemon</name>
     <vendor email="phundal@block.xyz">Block, Inc.</vendor>
-    <version>0.0.2</version>
+    <version>0.1.0</version>
 
     <description><![CDATA[
 Boost your IDE development productivity with background builds powered by the MDX Daemon. This plugin automatically runs background work as need to boost developer productivity.
